@@ -7,15 +7,12 @@ import (
 	"letsgobook/internal/validator"
 	"net/http"
 	"strconv"
-	"strings"
-	"unicode/utf8"
 )
 
 type snippetCreateForm struct {
-	Title       string
-	Content     string
-	Expires     int
-	FieldErrors map[string]string
+	Title   string
+	Content string
+	Expires int
 	validator.Validator
 }
 
