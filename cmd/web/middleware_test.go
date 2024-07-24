@@ -43,7 +43,7 @@ func TestSecureHeader(t *testing.T) {
 	assert.Equal(t, rs.StatusCode, http.StatusOK)
 
 	defer rs.Body.Close()
-	body, err := io.ReadAll(r.Body)
+	body, err := io.ReadAll(rs.Body)
 	if err != nil {
 		t.Fatal(err)
 	}
