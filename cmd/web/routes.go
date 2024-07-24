@@ -1,6 +1,7 @@
 package main
 
 import (
+	"letsgobook/ui"
 	"net/http"
 
 	"github.com/justinas/alice"
@@ -11,8 +12,8 @@ func (app *application) route() http.Handler {
 
 	dynamic := alice.New(app.sessionManager.LoadAndSave, noSurf, app.authenticate)
 
-	fileServer := http.FileServer(http.Dir("./ui/static/"))
-	mux.Handle("GET /static/", http.StripPrefix("/static", fileServer))
+	fileServer := http.FileServer(http.FS(ui.Files))
+	mux.Handle("GET /static/*filepath", fileServer)
 
 	mux.Handle("GET /{$}", dynamic.ThenFunc(app.home))
 	mux.Handle("GET /snippet/view/{id}", dynamic.ThenFunc(app.snippetView))
