@@ -29,6 +29,13 @@ type userLoginForm struct {
 	validator.Validator `form:"-"`
 }
 
+type forgotPasswordForm struct {
+	CurrentPassword         string `form:"currentPassword"`
+	NewPassword             string `form:"newPassword"`
+	NewPasswordConfirmation string `form:"newPasswordConfirmation"`
+	validator.Validator     `form:"-"`
+}
+
 func (app *application) home(w http.ResponseWriter, r *http.Request) {
 	snippets, err := app.snippets.Latest()
 	if err != nil {
@@ -62,6 +69,58 @@ func (app *application) accountView(w http.ResponseWriter, r *http.Request) {
 	data.User = user
 
 	app.render(w, http.StatusOK, "account.tmpl", data)
+}
+
+func (app *application) accountPasswordUpdate(w http.ResponseWriter, r *http.Request) {
+	data := app.newTemplateData(r)
+	data.Form = forgotPasswordForm{}
+
+	app.render(w, http.StatusOK, "password.tmpl", data)
+}
+
+func (app *application) accountPasswordUpdatePost(w http.ResponseWriter, r *http.Request) {
+	var form forgotPasswordForm
+
+	err := app.decodePostForm(r, &form)
+	if err != nil {
+		app.clientError(w, http.StatusBadRequest)
+		return
+	}
+
+	form.CheckField(validator.Notblank(form.CurrentPassword), "currentPassword", "This field cannot be blank")
+	form.CheckField(validator.Notblank(form.NewPassword), "newPassword", "This field cannot be blank")
+	form.CheckField(validator.MinChars(form.NewPassword, 8), "newPassword", "This field must be at least 8 characters long")
+	form.CheckField(validator.Notblank(form.NewPasswordConfirmation), "newPasswordConfirmation", "This field cannot be blank")
+	form.CheckField(form.NewPassword == form.NewPasswordConfirmation, "newPasswordConfirmation", "Passwords do not match")
+
+	if !form.Valid() {
+		data := app.newTemplateData(r)
+		data.Form = form
+		app.render(w, http.StatusUnprocessableEntity, "password.tmpl", data)
+		return
+	}
+
+	userID := app.sessionManager.GetInt(r.Context(), "authenticatedUserID")
+
+	err = app.users.PasswordUpdate(userID, form.CurrentPassword, form.NewPassword)
+	if err != nil {
+		if errors.Is(err, models.ErrInvalidCredentials) {
+			form.AddFieldError("currentPassword", "Current password is incorrect")
+
+			data := app.newTemplateData(r)
+			data.Form = form
+
+			app.render(w, http.StatusUnprocessableEntity, "password.tmpl", data)
+			return
+		} else {
+			app.serverError(w, err)
+			return
+		}
+	}
+
+	app.sessionManager.Put(r.Context(), "flash", "You have successfully updated your password.")
+
+	http.Redirect(w, r, "/account/view", http.StatusSeeOther)
 }
 
 func (app *application) snippetView(w http.ResponseWriter, r *http.Request) {
@@ -151,10 +210,10 @@ func (app *application) userSignupPost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	form.CheckField(validator.Notblank(form.Name), "name", "this field cannot be blank")
-	form.CheckField(validator.Notblank(form.Email), "email", "this field cannot be blank")
+	form.CheckField(validator.Notblank(form.Name), "name", "This field cannot be blank")
+	form.CheckField(validator.Notblank(form.Email), "email", "This field cannot be blank")
 	form.CheckField(validator.Matches(form.Email, validator.EmailRX), "email", "This field must be a valid email address")
-	form.CheckField(validator.Notblank(form.Password), "email", "this field cannot be blank")
+	form.CheckField(validator.Notblank(form.Password), "email", "This field cannot be blank")
 	form.CheckField(validator.MinChars(form.Password, 8), "password", "This field must be at least 8 characters long")
 
 	if !form.Valid() {
@@ -236,7 +295,7 @@ func (app *application) userLoginPost(w http.ResponseWriter, r *http.Request) {
 	path := app.sessionManager.PopString(r.Context(), "userWantedToRedirect")
 	if path != "" {
 		http.Redirect(w, r, path, http.StatusSeeOther)
-        return
+		return
 	}
 
 	http.Redirect(w, r, "/snippet/create", http.StatusSeeOther)

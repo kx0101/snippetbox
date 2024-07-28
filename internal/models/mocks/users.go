@@ -24,6 +24,18 @@ func (m *UserModel) Authenticate(email, password string) (int, error) {
 	return 0, models.ErrInvalidCredentials
 }
 
+func (m *UserModel) PasswordUpdate(id int, currentPassword, newPassword string) error {
+	if id == 1 {
+		if currentPassword != "qwerty!23" {
+			return models.ErrInvalidCredentials
+		}
+
+		return nil
+	}
+
+	return models.ErrNoRecord
+}
+
 func (m *UserModel) Exists(id int) (bool, error) {
 	switch id {
 	case 1:
