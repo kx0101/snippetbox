@@ -14,7 +14,7 @@ func (m *UserModel) Insert(name, email, password string) error {
 }
 
 func (m *UserModel) Authenticate(email, password string) (int, error) {
-	if email == "alice@example.com" && password == "pa$$word" {
+	if email == "liakos.koulaxis@yahoo.com" && password == "qwerty!23" {
 		return 1, nil
 	}
 

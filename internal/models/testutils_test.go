@@ -4,10 +4,17 @@ import (
 	"database/sql"
 	"os"
 	"testing"
+
+	"github.com/joho/godotenv"
 )
 
 func newTestDB(t *testing.T) *sql.DB {
-	db, err := sql.Open("mysql", os.Getenv("MYSQL_DSN"))
+	err := godotenv.Load("../../.env")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	db, err := sql.Open("mysql", os.Getenv("MYSQL_DSN_TEST"))
 	if err != nil {
 		t.Fatal(err)
 	}
